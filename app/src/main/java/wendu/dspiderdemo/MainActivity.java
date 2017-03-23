@@ -2,6 +2,7 @@ package wendu.dspiderdemo;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -26,6 +27,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button logBtn;
     private Button resultBtn;
     private DSpiderView spiderView;
+    //spider id, 详情https://dspider.dtworkroom.com
     private final int SID=1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +46,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         debugBtn.setOnClickListener(this);
         logBtn.setOnClickListener(this);
         resultBtn.setOnClickListener(this);
+        //初始化sdk
+        DSpider.init(this,1);
+
+        if(DSpider.getLastResult()==null){
+            resultBtn.setVisibility(View.GONE);
+        }
     }
 
     public <T extends View> T getView(int resId){
@@ -67,11 +75,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void crawlSilent(){
+       resultBtn.setVisibility(View.GONE);
        final ProgressDialog pd= ProgressDialog.show(this,"提示","正在爬取,请耐心等待",true,false);
         spiderView.start(SID, new SpiderEventListener() {
             @Override
             public void onResult(String sessionKey, List<String> data) {
-                showDialog("爬取成功");
+                showDialog("爬取成功",data.toString());
                 pd.hide();
             }
 
@@ -80,13 +89,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //如果错误，先判断是否可以重试
                 if(spiderView.canRetry()){
                     Dialog alertDialog = new AlertDialog.Builder(MainActivity.this).
-                            setTitle("提示").
-                            setMessage("检测到新的爬取方案，是否重试？")
-                            .setPositiveButton("ok", new DialogInterface.OnClickListener() {
+                            setTitle("提示")
+                            .setMessage("检测到新的爬取方案，是否重试？")
+                            .setCancelable(false)
+                            .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     dialog.dismiss();
                                     spiderView.retry();
+                                }
+                            })
+                            .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    pd.hide();
                                 }
                             })
                             .create();
@@ -105,16 +121,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void showLog(){
-        String log=DSpider.getLastLog(this);
+        String log=DSpider.getLastLog();
         if(TextUtils.isEmpty(log)){
             showDialog("日志","暂无日志");
         }else {
-            showDialog(DSpider.getLastLog(this));
+            showDialog(DSpider.getLastLog());
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == DSpider.REQUEST) {
+            //获取爬取数据
+            if (resultCode == RESULT_OK) {
+                //可以在此获取数据
+                resultBtn.setVisibility(View.VISIBLE);
+            }
         }
     }
 
     private void showLastResult(){
-        DSpider.Result result=DSpider.getLastResult(this);
+        DSpider.Result result=DSpider.getLastResult();
         if(result!=null) {
             showDialog("爬取结果",result.datas.toString());
         }else {
@@ -127,8 +155,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     private void showDialog(String title,String msg){
         Dialog alertDialog = new AlertDialog.Builder(this).
-                setTitle(title).
-                setMessage(msg)
+                setTitle(title)
+                .setMessage(msg)
                 .setPositiveButton("ok", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -139,25 +167,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         alertDialog.show();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        // Inflate the menu; this adds items to the action bar if it is present.
+//        getMenuInflater().inflate(R.menu.menu_main, menu);
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        // Handle action bar item clicks here. The action bar will
+//        // automatically handle clicks on the Home/Up button, so long
+//        // as you specify a parent activity in AndroidManifest.xml.
+//        int id = item.getItemId();
+//
+//        //noinspection SimplifiableIfStatement
+//        if (id == R.id.action_settings) {
+//            return true;
+//        }
+//        return super.onOptionsItemSelected(item);
+//    }
 
 }
