@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         logBtn.setOnClickListener(this);
         resultBtn.setOnClickListener(this);
         //初始化sdk
-        DSpider.init(this,1);
+        DSpider.init(this,5);
 
         if(DSpider.getLastResult()==null){
             resultBtn.setVisibility(View.GONE);
@@ -137,13 +137,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (resultCode == RESULT_OK) {
                 //可以在此获取数据
                 resultBtn.setVisibility(View.VISIBLE);
+               DSpider.Result result= DSpider.getLastResult();
+                if(result!=null){
+                    if(result.code==DSpider.Result.STATE_SUCCEED){
+                        showDialog("爬取成功");
+                    }else {
+                        showDialog(result.errorMsg);
+                    }
+                }else {
+                    showDialog("爬取失败");
+                }
             }
         }
     }
 
     private void showLastResult(){
         DSpider.Result result=DSpider.getLastResult();
-        if(result!=null) {
+        if(result!=null&&result.datas!=null) {
             showDialog("爬取结果",result.datas.toString());
         }else {
             showDialog("暂无爬取结果");
